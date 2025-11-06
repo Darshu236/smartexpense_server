@@ -11,8 +11,6 @@ import { fileURLToPath } from 'url';
 
 dotenv.config();
 
-
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -69,12 +67,46 @@ app.use((req, res, next) => {
   next();
 });
 
+// ===== Root route =====
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: '🎯 Smart Expense Tracker API',
+    version: '1.0.0',
+    status: 'Running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    endpoints: {
+      health: '/health',
+      debug: '/api/debug/routes',
+      auth: '/api/auth/*',
+      users: '/api/users/*',
+      transactions: '/api/transactions/*',
+      expenses: '/api/expenses/*',
+      budgets: '/api/budgets/*',
+      reports: '/api/reports/*',
+      friends: '/api/friends/*',
+      groups: '/api/groups/*',
+      notifications: '/api/notifications/*',
+      debts: '/api/debts/*',
+      splitExpenses: '/api/split-expenses/*',
+      forecast: '/api/forecast/*',
+      categories: '/api/categories/*',
+      settings: '/api/settings/*',
+      preferences: '/api/preferences/*'
+    },
+    documentation: 'Visit /api/debug/routes for detailed endpoint list'
+  });
+});
+
 // ===== Health check (BEFORE rate limiting) =====
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
+    database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
+    uptime: process.uptime()
   });
 });
 
@@ -252,6 +284,7 @@ if (process.env.NODE_ENV !== 'production') {
       console.log('\n' + '='.repeat(50));
       console.log(`✅ Server running on port ${PORT}`);
       console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
+      console.log(`🏠 Root: http://localhost:${PORT}/`);
       console.log(`💚 Health: http://localhost:${PORT}/health`);
       console.log(`🔍 Debug: http://localhost:${PORT}/api/debug/routes`);
       console.log('='.repeat(50) + '\n');
