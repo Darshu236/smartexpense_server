@@ -33,14 +33,36 @@ app.use(
 );
 
 // ===== CORS (MUST BE BEFORE ROUTES) =====
+// Allow multiple origins for development and production
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://smartexpense-frontend.vercel.app'
+];
+
+// Add custom FRONTEND_URL if provided
+if (process.env.FRONTEND_URL && !allowedOrigins.includes(process.env.FRONTEND_URL)) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn('⚠️ CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
-console.log('🔒 CORS configured for:', corsOptions.origin);
+console.log('🔒 CORS configured for origins:', allowedOrigins);
 app.use(cors(corsOptions));
 
 // ===== Body parsing (MUST BE BEFORE ROUTES) =====
@@ -60,43 +82,12 @@ app.use((req, res, next) => {
     console.log('📋 API Request:', {
       method: req.method,
       path: req.path,
+      origin: req.headers.origin,
       hasAuth: !!req.headers.authorization,
       contentType: req.headers['content-type']
     });
   }
   next();
-});
-
-// ===== Root route =====
-app.get('/', (req, res) => {
-  res.json({
-    success: true,
-    message: '🎯 Smart Expense Tracker API',
-    version: '1.0.0',
-    status: 'Running',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
-    endpoints: {
-      health: '/health',
-      debug: '/api/debug/routes',
-      auth: '/api/auth/*',
-      users: '/api/users/*',
-      transactions: '/api/transactions/*',
-      expenses: '/api/expenses/*',
-      budgets: '/api/budgets/*',
-      reports: '/api/reports/*',
-      friends: '/api/friends/*',
-      groups: '/api/groups/*',
-      notifications: '/api/notifications/*',
-      debts: '/api/debts/*',
-      splitExpenses: '/api/split-expenses/*',
-      forecast: '/api/forecast/*',
-      categories: '/api/categories/*',
-      settings: '/api/settings/*',
-      preferences: '/api/preferences/*'
-    },
-    documentation: 'Visit /api/debug/routes for detailed endpoint list'
-  });
 });
 
 // ===== Health check (BEFORE rate limiting) =====
@@ -105,8 +96,7 @@ app.get('/health', (req, res) => {
     status: 'OK',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
-    database: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
-    uptime: process.uptime()
+    allowedOrigins: allowedOrigins
   });
 });
 
@@ -283,8 +273,7 @@ if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {
       console.log('\n' + '='.repeat(50));
       console.log(`✅ Server running on port ${PORT}`);
-      console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
-      console.log(`🏠 Root: http://localhost:${PORT}/`);
+      console.log(`🌐 Allowed Origins:`, allowedOrigins);
       console.log(`💚 Health: http://localhost:${PORT}/health`);
       console.log(`🔍 Debug: http://localhost:${PORT}/api/debug/routes`);
       console.log('='.repeat(50) + '\n');
