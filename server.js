@@ -34,26 +34,19 @@ app.use(
 
 // ===== CORS (MUST BE BEFORE ROUTES) =====
 // Allow multiple origins for development and production
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'https://smartexpense-frontend.vercel.app'
-];
-
-// Add custom FRONTEND_URL if provided
-if (process.env.FRONTEND_URL && !allowedOrigins.includes(process.env.FRONTEND_URL)) {
-  allowedOrigins.push(process.env.FRONTEND_URL);
-}
+// ===== CORS (MUST BE BEFORE ROUTES) =====
+const allowedOrigins = process.env.FRONTEND_URL 
+  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+  : ['http://localhost:5173'];
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, Postman, etc.)
+    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.includes(origin)) {
+    if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      console.warn('⚠️ CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -62,7 +55,7 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
-console.log('🔒 CORS configured for origins:', allowedOrigins);
+console.log('🔐 CORS configured for origins:', allowedOrigins);
 app.use(cors(corsOptions));
 
 // ===== Body parsing (MUST BE BEFORE ROUTES) =====
@@ -289,4 +282,5 @@ if (process.env.NODE_ENV !== 'production') {
 connectDB().catch(err => console.error('DB connection error:', err));
 
 // Export for Vercel
+
 export default app;
